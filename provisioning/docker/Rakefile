@@ -1,0 +1,62 @@
+#
+# Rakefile Name:: docker
+#
+# Copyright (c) 2015 CREATIONLINE,INC. All Rights Reserved.
+#
+
+#
+# berks
+#
+desc 'berks vendor'
+task :vendor do
+  sh 'berks vendor cookbooks'
+end
+
+#
+# docker
+#
+desc 'docker'
+task :docker do
+  sh 'CHEF_DRIVER=docker chef-client -z docker.rb'
+end
+
+#
+# serf members
+#
+desc 'members'
+task :members do
+  `docker ps | grep serf1 | awk '{print $1}'`.split( /\n/ ).each do |s|
+    sh "docker exec #{s} serf members"
+  end
+end
+
+#
+# stop
+#
+desc 'stop'
+task :stop do
+  `docker ps | grep serf1 | awk '{print $1}'`.split( /\n/ ).each do |s|
+    sh "docker stop #{s}"
+  end
+end
+
+#
+# destroy
+#
+desc 'destroy'
+task :destroy do
+  current_dir = File.dirname(__FILE__)
+  sh "rm -f #{current_dir}/data_bags/machine_image/serf.json"
+  sh "rm -f #{current_dir}/clients/serf*"
+  sh "rm -f #{current_dir}/nodes/serf*"
+  `docker images | grep serf | awk '{print $3}'`.split( /\n/ ).each do |s|
+    sh "docker rmi -f #{s}"
+  end
+end
+
+task :default => [ :vendor, :docker ]
+task :clean => [ :stop, :destroy ]
+
+#
+# [EOF]
+#
